@@ -1,0 +1,21 @@
+[package]
+name = "nyansync"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0", features = ["compat"] }
+anyhow = { version = "1", default-features = false }
+thiserror = "2"
+futures = "0"
+hex = "0"
+sha1 = "0"
+env_logger = "0"
+log = "0"
+async-stream = "0"
+
+[features]
+default = ["checksum"]
+checksum = []
