@@ -1,17 +1,23 @@
+use crate::file;
 use crate::file::FileMeta;
 use async_stream::try_stream;
 use futures::stream;
 use log::warn;
-use std::io;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::fs;
+use std::{future, io};
+use tokio::fs::{self, File};
+use tokio::io::AsyncWriteExt;
+use uuid::Uuid;
 
 pub trait Dir {
-    async fn list_dir(
+    fn list_dir(
         &self,
         path: [u8; 2],
-    ) -> io::Result<impl stream::Stream<Item = io::Result<Option<[u8; 20]>>>>;
+    ) -> impl future::Future<
+        Output = io::Result<impl stream::Stream<Item = io::Result<Option<[u8; 20]>>>>,
+    > + Send;
+    fn save_file(&self, file: file::File) -> impl future::Future<Output = io::Result<()>> + Send;
 }
 
 pub struct FsDir {
@@ -68,10 +74,18 @@ impl Dir for FsDir {
             let Some(entry) = dir.next_entry().await? else {
                 break;
             };
-            let file_name = entry.file_name();
+
+
+             let Ok(file_name) = entry.file_name().into_string() else {
+                warn!(
+                    "Non-unicode file name encountered: {:?}",
+                    entry.file_name()
+                );
+                continue;
+            };
 
             // 尝试将文件名解析为 FileMeta
-            match FileMeta::from_str(&file_name.to_string_lossy()) {
+            match FileMeta::try_from(file_name.as_str()) {
                 Ok(file_meta) => {
                     // 成功解析则产出文件哈希
                     yield Some(file_meta.hash());
@@ -79,11 +93,36 @@ impl Dir for FsDir {
                 // 解析失败仅记录警告，不中断循环
                 Err(e) => warn!(
                     "Failed to parse FileMeta from file '{}': {}",
-                    file_name.to_string_lossy(),
+                    file_name,
                     e
                 ),
             }
         }})
+    }
+
+    async fn save_file(&self, file: file::File) -> io::Result<()> {
+        // 在临时目录中创建一个文件
+        let tmp_file_path = self.tmp_path.join(Uuid::new_v4().to_string());
+
+        // 将文件内容写入临时文件
+        let (meta, content) = file.into_parts();
+        {
+            let mut tmp_file = File::create(&tmp_file_path).await?;
+            tmp_file.write_all(&content).await?;
+            tmp_file.sync_data().await?;
+        }
+
+        // 构建目标路径
+        let file_hash = meta.hash();
+        let dst_path = self
+            .cache_path
+            .join(format!("{:02x}", file_hash[0]))
+            .join(format!("{:02x}", file_hash[1]))
+            .join(meta.to_string());
+
+        // 移动文件到缓存目录
+        fs::rename(&tmp_file_path, &dst_path).await?;
+        Ok(())
     }
 }
 

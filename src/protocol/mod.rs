@@ -72,7 +72,7 @@ where
             REQUEST_SAVE_FILE => {
                 let mut buf = [0u8; 29];
                 self.reader.read_exact(&mut buf).await?;
-                let info = FileMeta::from_bytes(&buf)?;
+                let info = FileMeta::try_from(&buf)?;
                 let mut content = vec![0; info.size() as usize];
                 self.reader.read_exact(&mut content).await?;
                 Ok(Command::SaveFile {

@@ -1,5 +1,6 @@
 use super::*;
 use crate::dir::Dir;
+use crate::file;
 use crate::protocol::{Protocol, types};
 use futures::stream;
 use std::io;
@@ -77,6 +78,9 @@ impl Dir for MockDir {
     ) -> io::Result<impl stream::Stream<Item = io::Result<Option<[u8; 20]>>>> {
         let files = vec![Ok(Some([0u8; 20])), Ok(Some([1u8; 20])), Ok(None)];
         Ok(stream::iter(files))
+    }
+    async fn save_file(&self, file: file::File) -> io::Result<()> {
+        todo!();
     }
 }
 
