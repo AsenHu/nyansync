@@ -75,7 +75,6 @@ impl Dir for FsDir {
                 break;
             };
 
-
              let Ok(file_name) = entry.file_name().into_string() else {
                 warn!(
                     "Non-unicode file name encountered: {:?}",
