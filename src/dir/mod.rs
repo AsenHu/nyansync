@@ -99,17 +99,12 @@ impl Dir for FsDir {
     }
 
     async fn save_file(&self, file: file::File) -> io::Result<()> {
-        // 在临时目录中创建一个文件
+        // 生成临时文件名
         let tmp_file_path = self.tmp_path.join(Uuid::new_v4().to_string());
 
         // 将文件内容写入临时文件
         let (meta, content) = file.into_parts();
-        {
-            let mut tmp_file = File::create(&tmp_file_path).await?;
-            tmp_file.write_all(&content).await?;
-            tmp_file.sync_all().await?;
-            tmp_file.shutdown().await?;
-        }
+        fs::write(&tmp_file_path, &content).await?;
 
         // 构建目标路径
         let file_hash = meta.hash();
