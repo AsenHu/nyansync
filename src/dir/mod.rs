@@ -4,7 +4,6 @@ use async_stream::try_stream;
 use futures::stream;
 use log::warn;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::{future, io};
 use tokio::fs::{self, File};
 use tokio::io::AsyncWriteExt;
@@ -26,11 +25,11 @@ pub struct FsDir {
 }
 
 impl FsDir {
-    pub fn new(cache: String, tmp: String) -> Arc<Self> {
-        Arc::new(Self {
-            cache_path: PathBuf::from(cache),
-            tmp_path: PathBuf::from(tmp),
-        })
+    pub fn new<P: Into<PathBuf>>(cache: P, tmp: P) -> Self {
+        Self {
+            cache_path: cache.into(),
+            tmp_path: tmp.into(),
+        }
     }
 }
 

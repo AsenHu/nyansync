@@ -16,7 +16,7 @@ pub struct Config {
 #[tokio::main]
 pub async fn run(config: Config) -> Result<(), Error> {
     // 打开缓存目录
-    let dir = FsDir::new(config.cache, config.tmp);
+    let dir = Arc::new(FsDir::new(config.cache, config.tmp));
 
     // 准备 TCP 监听器
     let listener = TcpListener::bind(config.listen).await?;
@@ -90,8 +90,10 @@ where
                 protocol.respond_list_dir(files).await?;
             }
             Command::SaveFile { file } => {
+                // file 里包含元数据和内容
+                // 每个 file 在极端情况下也就 50 MiB，所以这里直接全部读入内存
                 dir.save_file(file).await?;
-                // 怎么一行就完事了？
+                // 没想到这个命令居然能这么简单就完成
             }
         }
     }
