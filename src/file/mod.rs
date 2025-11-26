@@ -143,13 +143,23 @@ impl TryFrom<&str> for FileMeta {
     }
 }
 
+impl TryFrom<&[u8]> for FileMeta {
+    type Error = Error;
+
+    fn try_from(bytes: &[u8]) -> Result<Self, Error> {
+        if bytes.len() < 29 {
+            return Err(Error::InvalidByteArrayLength(bytes.len()));
+        }
+
+        let array_ref: &[u8; 29] = bytes[0..29].try_into()?;
+        Self::try_from(array_ref)
+    }
+}
+
 impl TryFrom<&[u8; 29]> for FileMeta {
     type Error = Error;
 
     fn try_from(bytes: &[u8; 29]) -> Result<Self, Error> {
-        if bytes.len() != 29 {
-            return Err(Error::InvalidByteArrayLength(bytes.len()));
-        }
         let size = u32::from_be_bytes(bytes[0..4].try_into()?);
         let hash = bytes[4..24].try_into()?;
         let width = u16::from_be_bytes(bytes[24..26].try_into()?);
