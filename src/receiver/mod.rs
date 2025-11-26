@@ -90,7 +90,8 @@ where
                 protocol.respond_list_dir(files).await?;
             }
             Command::SaveFile { file } => {
-                todo!("Handle SaveFile command");
+                dir.save_file(file).await?;
+                // 怎么一行就完事了？
             }
         }
     }

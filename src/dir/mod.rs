@@ -108,7 +108,8 @@ impl Dir for FsDir {
         {
             let mut tmp_file = File::create(&tmp_file_path).await?;
             tmp_file.write_all(&content).await?;
-            tmp_file.sync_data().await?;
+            tmp_file.sync_all().await?;
+            tmp_file.shutdown().await?;
         }
 
         // 构建目标路径
